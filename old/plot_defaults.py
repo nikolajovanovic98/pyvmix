@@ -1,4 +1,4 @@
-if True:
+if False:
   nsave = S.nsave
   zt = S.zt
   zu = S.zu
@@ -41,7 +41,8 @@ if True:
   nnf = S.nnf
   savefig = S.savefig
   path_fig = S.path_fig
-T_s = b_s/S.grav/S.tAlpha + S.T0
+T0 = 20.
+T_s = b_s/grav/tAlpha + T0
 
 # ---
 hca, hcb = pyic.arrange_axes(6,2, plot_cb=False, asp=2., fig_size_fac=2.,
