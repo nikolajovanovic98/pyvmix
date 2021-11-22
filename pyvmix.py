@@ -510,7 +510,7 @@ class Model(object):
             S.Qsurf_ts[ls] = Qsurf
             S.taux_ts[ls] = taux
             S.tauy_ts[ls] = tauy
-        
+
             """
             u d/dz Av d/dz u = d/dz u Av d/dz u - av (d/dz u)^2
         
@@ -536,4 +536,5 @@ class Model(object):
         #ape = (0.5*b_s**2/(N2i+1e-33))*dz[np.newaxis,:]).sum(axis=1)
         S.b2 = (S.b_s**2*dz[np.newaxis,:]).sum(axis=1)
         S.time = deltaT*lsave * np.arange(nsave)
+
         return
