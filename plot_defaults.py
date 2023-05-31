@@ -6,7 +6,9 @@ if True:
   dzt = S.dzt
   ylim_hov = S.ylim_hov
 
-  b_s = S.b_s
+  #b_s = S.b_s
+  temp_s = S.temp_s
+  salt_s = S.salt_s 
   uvel_s = S.uvel_s
   vvel_s = S.vvel_s
   tke_s = S.tke_s
@@ -43,7 +45,9 @@ if True:
   nnf = S.nnf
   savefig = S.savefig
   path_fig = S.path_fig
-T_s = b_s/S.grav/S.tAlpha + S.T0
+#T_s = b_s/S.grav/S.tAlpha + S.T0
+T_s = temp_s + S.T0 
+s_s = salt_s + S.s0
 
 mld = ((((T_s[:,0][:,np.newaxis]-T_s)<0.5)*dz).sum(axis=1))
 
@@ -59,6 +63,12 @@ for l in range(nsave):
   #ax.plot(b_s[l,:], zt, color=cols[l,:])
   ax.plot(T_s[l,:], zt, color=cols[l,:])
 ax.set_title('temperature')
+
+ii+=1; ax=hca[ii]; cax=hcb[ii]
+for l in range(nsave):
+  #ax.plot(b_s[l,:], zt, color=cols[l,:])
+  ax.plot(salt_s[l,:], zt, color=cols[l,:])
+ax.set_title('salinity')
 
 ii+=1; ax=hca[ii]; cax=hcb[ii]
 for l in range(nsave):
@@ -220,7 +230,7 @@ if savefig:
   plt.savefig("%s_%02d.pdf" % (path_fig+__file__.split('/')[-1][:-3], nnf))
 
 # --- time series
-hca, hcb = pyic.arrange_axes(3,2, plot_cb=True, asp=0.5, fig_size_fac=1.5,
+hca, hcb = pyic.arrange_axes(3,3, plot_cb=True, asp=0.5, fig_size_fac=1.5,
                             sharex=False, sharey=False, 
                             xlabel=tstr, ylabel="depth [m]")
 ii=-1
@@ -229,6 +239,12 @@ ii+=1; ax=hca[ii]; cax=hcb[ii]
 #pyic.shade(tpl, zt, b_s.transpose(), ax=ax, cax=cax, clim='auto') 
 #ax.set_title('buoyancy')
 pyic.shade(tpl, zt, T_s.transpose(), ax=ax, cax=cax, clim='auto') 
+ax.set_title('temperature')
+
+ii+=1; ax=hca[ii]; cax=hcb[ii]
+#pyic.shade(tpl, zt, b_s.transpose(), ax=ax, cax=cax, clim='auto') 
+#ax.set_title('buoyancy')
+pyic.shade(tpl, zt, salt_s.transpose(), ax=ax, cax=cax, clim='auto') 
 ax.set_title('temperature')
 
 ii+=1; ax=hca[ii]; cax=hcb[ii]

@@ -43,8 +43,11 @@ S.initialize()
 # Modify initial conditions
 # -------------------------
 #S.b = 5e-3*np.exp(S.zt/200.)
-S.b = 0.*S.zt
+#S.b = 0.*S.zt
 #S.b = 1e-4*S.zt/100.
+
+S.temp = 0.*S.zt 
+S.salt = 0.*S.zt
 
 # Modify forcing
 # --------------
@@ -54,8 +57,14 @@ S.Qsurf0 = 800.
 S.uair = 4.
 S.vair = 0.
 
-S.b0 = 1.*S.b
-S.lam_b = 0.*1./(1.*86400.)
+#S.b0 = 1.*S.b
+#S.lam_b = 0.*1./(1.*86400.)
+
+S.temp0    = 1.*S.temp 
+S.lam_temp = 0.*1/(1.*86400)
+
+S.salt0    = 1.*S.salt
+S.lam_salt = 0.*1/(1.*86400)
 
 S.ylim_hov = [-25, 0]
 
@@ -85,6 +94,22 @@ def buoyancy_forcing(S, time):
     Qsurf = Qcut
   return Qsurf
 S.buoyancy_forcing = buoyancy_forcing
+
+def freshwater_forcing(S, time):
+
+  precip = 0. 
+
+  #precip = np.zeros(len(time/86400))
+
+ # for i in range(len(precip)): 
+ #   if i < 60:
+ #     precip[i] = 0.
+ #   else:
+ #     precip[i] = 0.7
+
+  evap = 0.
+  return precip, evap 
+S.freshwater_forcing = freshwater_forcing
 
 # Run the model
 # -------------

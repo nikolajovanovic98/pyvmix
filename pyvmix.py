@@ -1,7 +1,8 @@
+from re import T
 import numpy as np
 import xarray as xr
 from ipdb import set_trace as mybreak
-      
+
 ## Tri Diagonal Matrix Algorithm(a.k.a Thomas algorithm) solver
 def TDMAsolver(ac, bc, cc, dc):
   '''
@@ -42,31 +43,33 @@ class Model(object):
         
         # Physical constants
         # ------------------
-        S.grav = 9.81
-        S.tAlpha = 2e-4
-        S.T0 = 20.
-        S.rho0 = 1024.
-        S.cp = 4.18e3
+        S.grav = 9.81                       # Gravitational acceleration 
+        S.tAlpha = 2e-4                     # Thermal expansion coefficient
+        S.sGamma = 8e-4                     # Haline contraction coefficient  
+        S.T0 = 20.                          # Initial temperature
+        S.s0 = 0.025                        # Initial salinity 
+        S.rho0 = 1024.                      # Density of water 
+        S.cp = 4.18e3                       # Specific heat of water
         #S.fcor = 1e-4
-        S.fcor = 2.*np.pi/86400.
+        S.fcor = 2.*np.pi/86400.            # Coriolis parameter 
 
-        S.cdrag = 1.2e-3
-        S.rho_air = 1.2
+        S.cdrag = 1.2e-3                    # Coefficient of drag 
+        S.rho_air = 1.2                     # Density of air 
         
         # Time stepping
         # --------------
-        S.nt = 24*2 * 20
-        S.deltaT = 1800.
-        S.lsave = 2*3
+        S.nt = 24*2 * 20                    # No. of time steps
+        S.deltaT = 1800.                    # Time step 
+        S.lsave = 2*3                       # For output
         
         # TKE parameter
         # -------------
-        S.cu = 0.1
-        S.cd = 3.75
-        S.alpha = 30.
-        S.ceps = 0.7
-        S.tke_min = 1e-6
-        S.Lmix_min = 1e-8
+        S.cu = 0.1                          
+        S.cd = 3.75                         
+        S.alpha = 30.                        
+        S.ceps = 0.7                         # Tuning parameters
+        S.tke_min = 1e-6                     # Min. kinetic energy 
+        S.Lmix_min = 1e-8                    
         # bottom drag 0.001-0.003
         S.bottomDragQuadratic = 0.*0.002
         
@@ -86,65 +89,73 @@ class Model(object):
         
         # Allocate initial variables
         # --------------------------
-        S.uvel = np.zeros((S.nz))
-        S.vvel = np.zeros((S.nz))
-        S.b = np.zeros((S.nz))
-        S.tke = np.zeros((S.nz+1))
-        S.kv = np.zeros((S.nz+1))
-        S.Av = np.zeros((S.nz+1))
+        S.uvel = np.zeros((S.nz))                     # Zonal velocity 
+        S.vvel = np.zeros((S.nz))                     # Meridional velocity
+        S.b = np.zeros((S.nz))                        # Buoyancy
+        S.temp = np.zeros((S.nz))                     # Temperature 
+        S.salt = np.zeros((S.nz))                     # Salinity 
+        S.tke = np.zeros((S.nz+1))                    # TKE
+        S.kv = np.zeros((S.nz+1))                     # Diffusivity 
+        S.Av = np.zeros((S.nz+1))                     # Viscosity 
         
         # --- mixing profile (for kvAv = 'profile')
-        S.kv_prof = np.zeros((S.nz+1))
+        S.kv_prof = np.zeros((S.nz+1))                
         S.Av_prof = np.zeros((S.nz+1))
         
-        S.Tu_wnd = np.zeros((S.nz))
-        S.Tv_wnd = np.zeros((S.nz))
-        S.Tu_bot = np.zeros((S.nz))
-        S.Tv_bot = np.zeros((S.nz))
-        S.Tb_sfl = np.zeros((S.nz))
+        S.Tu_wnd = np.zeros((S.nz))                    
+        S.Tv_wnd = np.zeros((S.nz))                     # Wind 
+        S.Tu_bot = np.zeros((S.nz))                     
+        S.Tv_bot = np.zeros((S.nz))                     # Bottom  
+        S.Tb_sfl = np.zeros((S.nz))                     # Surface buoyancy flux
+        S.Ttemp_sfl = np.zeros((S.nz))                  # Surface temperature flux
+        S.Tsalt_sfl  = np.zeros((S.nz))                 # Surface salinity flux 
         
         # Allocate forcing variables
         # --------------------------
-        S.wvel = np.zeros((S.nz+1))
-        S.dpdx = np.zeros((S.nz))
-        S.dpdy = np.zeros((S.nz))
+        S.wvel = np.zeros((S.nz+1))                     # Vertical velocity
+        S.dpdx = np.zeros((S.nz))                      
+        S.dpdy = np.zeros((S.nz))                       # Pressure gradients 
         
         # Allocate output variables
         # -------------------------
         S.nsave = int(S.nt/S.lsave)
         
         # --- time series of profiles
-        S.uvel_s = np.zeros((S.nsave,S.nz))
-        S.vvel_s = np.zeros((S.nsave,S.nz))
-        S.b_s = np.zeros((S.nsave,S.nz))
+        S.uvel_s = np.zeros((S.nsave,S.nz))             # Zon. velocity
+        S.vvel_s = np.zeros((S.nsave,S.nz))             # Mer. velocity
+        S.b_s = np.zeros((S.nsave,S.nz))                # Buoyancy 
+        S.temp_s = np.zeros((S.nsave,S.nz))             # Temperature 
+        S.salt_s = np.zeros((S.nsave,S.nz))             # Salinity
         S.tke_s = np.zeros((S.nsave,S.nz+1))
         S.kv_s = np.zeros((S.nsave,S.nz+1))
-        S.Av_s = np.zeros((S.nsave,S.nz+1))
-        S.Lmix_s = np.zeros((S.nsave,S.nz+1))
-        S.N2_s = np.zeros((S.nsave,S.nz+1))
+        S.Av_s = np.zeros((S.nsave,S.nz+1))             # Diffusivities 
+        S.Lmix_s = np.zeros((S.nsave,S.nz+1))           # Mixing length scale
+        S.N2_s = np.zeros((S.nsave,S.nz+1))             # Brunt-Vaisala 
         
         # ---- time series vint MKE equation
-        S.Tke_cor = np.zeros((S.nsave)) 
-        S.Tke_hpr = np.zeros((S.nsave)) 
-        S.Tke_wnd = np.zeros((S.nsave)) 
-        S.Tke_bot = np.zeros((S.nsave)) 
-        S.Tke_vdf = np.zeros((S.nsave)) 
-        S.Tke_vds = np.zeros((S.nsave)) 
-        S.Tke_vfl = np.zeros((S.nsave)) 
-        S.Tke_tot = np.zeros((S.nsave)) 
+        S.Tke_cor = np.zeros((S.nsave))                 # Coriolis 
+        S.Tke_hpr = np.zeros((S.nsave))                 # Hor. pressure gradient
+        S.Tke_wnd = np.zeros((S.nsave))                 # Wind
+        S.Tke_bot = np.zeros((S.nsave))                 # Bottom 
+        S.Tke_vdf = np.zeros((S.nsave))                 # Vertical diffusion
+        S.Tke_vds = np.zeros((S.nsave))                 # Vertical dissipation
+        S.Tke_vfl = np.zeros((S.nsave))                 # Vertical flow?
+        S.Tke_tot = np.zeros((S.nsave))                 # Total 
         
         # --- time series vint TKE equation
-        S.Ttke_tot = np.zeros((S.nsave)) 
-        S.Ttke_bpr = np.zeros((S.nsave)) 
-        S.Ttke_spr = np.zeros((S.nsave)) 
-        S.Ttke_dis = np.zeros((S.nsave)) 
-        S.Ttke_vdf = np.zeros((S.nsave)) 
-        S.Ttke_bck = np.zeros((S.nsave)) 
+        S.Ttke_tot = np.zeros((S.nsave))                # Total TKE
+        S.Ttke_bpr = np.zeros((S.nsave))                # Exchange with PE 
+        S.Ttke_spr = np.zeros((S.nsave))                # Exchange with MKE 
+        S.Ttke_dis = np.zeros((S.nsave))                # Dissipation (Kolmogorow)
+        S.Ttke_vdf = np.zeros((S.nsave))                # Vertical diffusion
+        S.Ttke_bck = np.zeros((S.nsave))                # Background
         
         # --- time series of the forcing
-        S.Qsurf_ts = np.zeros((S.nsave))
-        S.taux_ts = np.zeros((S.nsave))
-        S.tauy_ts = np.zeros((S.nsave))
+        S.Qsurf_ts = np.zeros((S.nsave))                # Surface heat flux  
+        S.precip_ts = np.zeros(S.nsave)                 # Precipitation 
+        S.evap_ts = np.zeros(S.nsave)                   # Evaporation
+        S.taux_ts = np.zeros((S.nsave))                 # Zonal stress
+        S.tauy_ts = np.zeros((S.nsave))                 # Meridional stress
         return
 
     def wind_forcing(self, time):
@@ -155,6 +166,11 @@ class Model(object):
     def buoyancy_forcing(self, time):
         Qsurf = 0.
         return Qsurf
+
+    def freshwater_forcing(self, time): 
+      precip = 0. 
+      evap = 0.
+      return precip, evap
 
     def run_model(self):
         S = self
@@ -169,6 +185,8 @@ class Model(object):
         uvel = S.uvel
         vvel = S.vvel
         b = S.b
+        temp = S.temp
+        salt = S.salt
         tke = S.tke
         kv = S.kv
         Av = S.Av
@@ -181,6 +199,8 @@ class Model(object):
         Tv_bot = S.Tv_bot
 
         Tb_sfl = S.Tb_sfl
+        Ttemp_sfl = S.Ttemp_sfl
+        Tsalt_sfl = S.Tsalt_sfl 
 
         nt = int(nt)
         lsave = int(lsave)
@@ -199,23 +219,33 @@ class Model(object):
           #Qsurf = Qsurf0*np.sin(2*np.pi*time/86400.)
           taux, tauy = self.wind_forcing(S, time)
           Qsurf = self.buoyancy_forcing(S, time)
+          precip, evap = self.freshwater_forcing(S, time)
         
           # save variables of previous time step
           uvel_old = 1.*uvel
           vvel_old = 1.*vvel
           b_old    = 1.*b
+          temp_old    = 1.*temp
+          salt_old    = 1.*salt
           tke_old  = 1.*tke
         
           # vert derivatives
           N2 = np.zeros((nz+1))
           uz = np.zeros((nz+1))
           vz = np.zeros((nz+1))
-          N2[1:-1] = (b[:-1]-b[1:])/dzt[1:-1]
+
+          # include salinity in N2 calculation 
+          #salinity = True 
+          N2[1:-1] = S.grav*S.tAlpha*(temp[:-1]-temp[1:])/dzt[1:-1] - S.grav*S.sGamma*(salt[:-1]-salt[1:])/dzt[1:-1]
+
+          # previous calc. using b   
+          # N2[1:-1] = (b[:-1]-b[1:])/dzt[1:-1]
+
           uz[1:-1] = (uvel[:-1]-uvel[1:])/dzt[1:-1]
           vz[1:-1] = (vvel[:-1]-vvel[1:])/dzt[1:-1]
         
           # paramter
-          Ri = N2/(uz+1e-33)
+          Ri = N2/(uz+1e-33)                              # Richardson number 
           Pr = np.maximum(1, np.minimum(10., 6.6*Ri))
           S.cb = S.cu/Pr
         
@@ -409,19 +439,21 @@ class Model(object):
           #Tv_vdf = (flux[:-1]-flux[1:])/dz
         
           # ==========
-          # buoycancy
+          # temperature
           # ==========
-          # buoyancy tendencies
-          bi = np.zeros((nz+1))
-          bi[1:-1] = 0.5*(b[:-1]+b[1:]) # FIXME: not true for unequal grid spacing
-          flux = S.wvel*bi
-          Tb_vad = -(flux[:-1]-flux[1:])/dz
-          Tb_res = S.lam_b*(S.b0-b)
+          # temperature tendencies
+          tempi = np.zeros((nz+1))
+          tempi[1:-1] = 0.5*(temp[:-1]+temp[1:]) # FIXME: not true for unequal grid spacing
+          flux = S.wvel*tempi
+          Ttemp_vad = -(flux[:-1]-flux[1:])/dz
+          Ttemp_res = S.lam_temp*(S.temp0-temp)
           #flux = kv*N2
           #Tb_vdf = (flux[:-1]-flux[1:])/dz
-          Tb_sfl[0] = S.grav*S.tAlpha/(S.rho0*S.cp)/dz[0]*Qsurf  # for [Qsurf]=W/m^2
-          Tb = Tb_vad + Tb_sfl + Tb_res #+ Tb_vdf
-        
+          Ttemp_sfl[0] = 1./(S.rho0*S.cp)/dz[0]*Qsurf  # for [Qsurf]=W/m^2
+          
+          Ttemp = Ttemp_vad + Ttemp_sfl + Ttemp_res #+ Tb_vdf
+
+
           # diffusion
           am = kv[:-1]/(dz*dzt[:-1])
           cm = kv[1:] /(dz*dzt[1:])
@@ -434,17 +466,57 @@ class Model(object):
             atr = -deltaT*am
             btr = 1+deltaT*bm
             ctr = -deltaT*cm
-            # ----- for b
-            dtrb = 1.*b
-            dtrb += deltaT*(Tb)
-            b = TDMAsolver(1.*atr, 1.*btr, 1.*ctr, 1.*dtrb)
+            # ----- for temp
+            dtrtemp = 1.*temp
+            dtrtemp += deltaT*(Ttemp)
+            temp = TDMAsolver(1.*atr, 1.*btr, 1.*ctr, 1.*dtrtemp)
         
-          Tb_vdf = np.zeros((nz))
-          Tb_vdf[1:-1] = am[1:-1]*b[:-2] - bm[1:-1]*b[1:-1] + cm[1:-1]*b[2:]
-          Tb_vdf[0]  = -bm[0] *b[0]  + cm[0] *b[1]
-          Tb_vdf[-1] =  am[-1]*b[-2] - bm[-1]*b[-1]
+          Ttemp_vdf = np.zeros((nz))
+          Ttemp_vdf[1:-1] = am[1:-1]*temp[:-2] - bm[1:-1]*temp[1:-1] + cm[1:-1]*temp[2:]
+          Ttemp_vdf[0]  = -bm[0] *temp[0]  + cm[0] *temp[1]
+          Ttemp_vdf[-1] =  am[-1]*temp[-2] - bm[-1]*temp[-1]
         
-          Tb += Tb_vdf
+          Ttemp += Ttemp_vdf
+
+          # ==========
+          # salinity
+          # ==========
+          # salinity tendencies
+          salti = np.zeros((nz+1))
+          salti[1:-1] = 0.5*(salt[:-1]+salt[1:]) # FIXME: not true for unequal grid spacing
+          flux = S.wvel*salti
+          Tsalt_vad = -(flux[:-1]-flux[1:])/dz
+          Tsalt_res = S.lam_salt*(S.salt0-salt)
+          #flux = kv*N2
+          #Tb_vdf = (flux[:-1]-flux[1:])/dz
+          Tsalt_sfl[0] = S.rho0*((salt[0]+0.025)/(1-(salt[0]+0.025)/1000.))*(evap - precip)
+          
+          Tsalt = Tsalt_vad + Tsalt_sfl + Tsalt_res #+ Tb_vdf
+
+
+          # diffusion
+          am = kv[:-1]/(dz*dzt[:-1])
+          cm = kv[1:] /(dz*dzt[1:])
+          bm = am+cm
+          bm[0] = cm[0]
+          bm[-1] = am[-1]
+        
+          if implicite:
+            # ----- solve tri-diagonal diffusion matrix
+            atr = -deltaT*am
+            btr = 1+deltaT*bm
+            ctr = -deltaT*cm
+            # ----- for s
+            dtrsalt = 1.*salt
+            dtrsalt += deltaT*(Tsalt)
+            salt = TDMAsolver(1.*atr, 1.*btr, 1.*ctr, 1.*dtrsalt)
+        
+          Tsalt_vdf = np.zeros((nz))
+          Tsalt_vdf[1:-1] = am[1:-1]*salt[:-2] - bm[1:-1]*salt[1:-1] + cm[1:-1]*salt[2:]
+          Tsalt_vdf[0]  = -bm[0] *salt[0]  + cm[0] *salt[1]
+          Tsalt_vdf[-1] =  am[-1]*salt[-2] - bm[-1]*salt[-1]
+        
+          Tsalt += Tsalt_vdf
         
           # ==========
           # Adams-Bashforth timestepping
@@ -452,14 +524,17 @@ class Model(object):
           if l==0:
             Tu_old = 1.*Tu
             Tv_old = 1.*Tv
-            Tb_old = 1.*Tb
+            Ttemp_old = 1.*Ttemp
+            Tsalt_old = 1.*Tsalt
             Tt_old = 1.*Tt
         
           epsab = 0.01
           if not implicite:
             uvel = uvel + deltaT*((1.5+epsab)*Tu - (0.5+epsab)*Tu_old)
             vvel = vvel + deltaT*((1.5+epsab)*Tv - (0.5+epsab)*Tv_old)
-            b    = b    + deltaT*((1.5+epsab)*Tb - (0.5+epsab)*Tb_old)
+            #b    = b   + deltaT*((1.5+epsab)*Tb - (0.5+epsab)*Tb_old)
+            temp = temp + deltaT*((1.5+epsab)*Ttemp - (0.5+epsab)*Ttemp_old)
+            salt = salt + deltaT*((1.5+epsab)*Tsalt - (0.5+epsab)*Tsalt_old)
           if not implicite_tke:
             tke  = tke  + deltaT*((1.5+epsab)*Tt - (0.5+epsab)*Tt_old)
         
@@ -469,22 +544,30 @@ class Model(object):
         
           Tu_old = 1.*Tu
           Tv_old = 1.*Tv
-          Tb_old = 1.*Tb
+          #Tb_old = 1.*Tb
+          Ttemp_old = 1.*Ttemp
+          Tsalt_old = 1.*Tsalt
           Tt_old = 1.*Tt
         
           Tu_tot = (uvel-uvel_old)/deltaT
           Tv_tot = (vvel-vvel_old)/deltaT
-          Tb_tot = (b-b_old)/deltaT
+          #Tb_tot = (b-b_old)/deltaT
+          Ttemp_tot = (temp-temp_old)/deltaT
+          Tsalt_tot = (salt-salt_old)/deltaT
           Tt_tot = (tke-tke_old)/deltaT
 
           S.uvel = uvel
           S.vvel = vvel
-          S.b = b
+          #S.b = b
+          S.temp = temp
+          S.salt = salt
         
           # saving variables
           if (l%lsave)==0:
             print('saving at l = %d / %d: %.1f'%(l, nt, 100.*l/nt))
-            S.b_s[ls,:] = b
+            #S.b_s[ls,:] = b
+            S.temp_s[ls,:] = temp
+            S.salt_s[ls,:] = salt
             S.uvel_s[ls,:] = uvel
             S.vvel_s[ls,:] = vvel
             S.tke_s[ls,:] = tke
@@ -508,6 +591,8 @@ class Model(object):
             S.Ttke_bck[ls] = (Tt_bck*dzt).sum()
         
             S.Qsurf_ts[ls] = Qsurf
+            S.precip_ts[ls] = precip
+            S.evap_ts[ls] = evap
             S.taux_ts[ls] = taux
             S.tauy_ts[ls] = tauy
 
@@ -525,7 +610,9 @@ class Model(object):
             ls += 1
         
         Tt_err = Tt_tot - (Tt_bpr+Tt_spr+Tt_dis+Tt_vdf+Tt_bck)
-        Tb_err = Tb_tot - (Tb_vad+Tb_res+Tb_vdf+Tb_sfl)
+        #Tb_err = Tb_tot - (Tb_vad+Tb_res+Tb_vdf+Tb_sfl)
+        Ttemp_err = Ttemp_tot - (Ttemp_vad+Ttemp_res+Ttemp_vdf+Ttemp_sfl)
+        Tsalt_err = Tsalt_tot - (Tsalt_vad+Tsalt_res+Tsalt_vdf+Tsalt_sfl)
         Tu_err = Tu_tot - (Tu_cor+Tu_hpr+Tu_wnd+Tu_bot+Tu_vdf)
         Tv_err = Tv_tot - (Tv_cor+Tv_hpr+Tv_wnd+Tv_bot+Tv_vdf)
         
@@ -534,7 +621,9 @@ class Model(object):
         S.uvel_ts = (S.uvel_s*dz[np.newaxis,:]).sum(axis=1)
         S.vvel_ts = (S.vvel_s*dz[np.newaxis,:]).sum(axis=1)
         #ape = (0.5*b_s**2/(N2i+1e-33))*dz[np.newaxis,:]).sum(axis=1)
-        S.b2 = (S.b_s**2*dz[np.newaxis,:]).sum(axis=1)
+        S.temp2 = (S.temp_s**2*dz[np.newaxis,:]).sum(axis=1)
+        S.salt2 = (S.salt_s**2*dz[np.newaxis,:]).sum(axis=1)
+        #S.b2 = (S.b_s**2*dz[np.newaxis,:]).sum(axis=1)
         S.time = deltaT*lsave * np.arange(nsave)
 
         return
